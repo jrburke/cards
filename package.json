@@ -1,0 +1,30 @@
+{
+  "name": "cards",
+  "version": "0.1.0",
+  "description": "A module that handles the placement and animation of UI card views",
+  "main": "cards.js",
+  "scripts": {
+    "test": "mocha test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jrburke/cards.git"
+  },
+  "author": "James Burke",
+  "contributors": [
+    {
+      "name": "Andrew Sutherland"
+    }
+  ],
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/jrburke/cards/issues"
+  },
+  "homepage": "https://github.com/jrburke/cards",
+  "devDependencies": {
+    "mocha": "^2.3.0"
+  },
+  "volo": {
+    "url": "https://raw.githubusercontent.com/jrburke/cards/{version}/cards.js"
+  }
+}
