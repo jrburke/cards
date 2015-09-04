@@ -34,7 +34,7 @@ The cards module wants to bind to an HTML structure that looks like so:
 
 ```html
 <!-- This div should be sized to the viewport via CSS -->
-<div class="cardContainer">
+<div class="cardsContainer">
   <!-- This div holds the cards and will end being wider than the viewport -->
   <div class="cards"></div>
 </div>

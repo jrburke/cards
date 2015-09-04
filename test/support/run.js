@@ -11,11 +11,20 @@ document.querySelector('title').textContent = 'Test: ' + testId;
 require.config({
   baseUrl: url,
   paths: {
-    mocha: '../../node_modules/mocha/mocha',
-    chai: '../support/chai',
     cards: '../../cards',
+    cards_init: '../support/cards_init',
+    chai: '../support/chai',
+    element: '../support/element',
     evt: '../../lib/evt',
+    mocha: '../../node_modules/mocha/mocha',
     transition_end: '../../lib/transition_end'
+  },
+  config: {
+    element: {
+      idToTag: function(id) {
+        return id.toLowerCase().replace(/\//g, '-');
+      }
+    }
   }
 });
 

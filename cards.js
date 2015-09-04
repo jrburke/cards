@@ -112,7 +112,7 @@ var cards = {
     return type;
   },
 
-  elementToModuleId: function(element) {
+  elementToType: function(element) {
     return element.nodeName.toLowerCase();
   },
 
@@ -193,6 +193,7 @@ var cards = {
     this._pendingPush = null;
 
     var domNode = args.cachedNode || new cardDef();
+    domNode.classList.add('card');
 
     this.emit('cardCreated', type, domNode);
 
@@ -250,7 +251,7 @@ var cards = {
   _findCardUsingType: function(type) {
     for (var i = 0; i < this._cardStack.length; i++) {
       var domNode = this._cardStack[i];
-      if (cards.elementToModuleId(domNode) === type) {
+      if (cards.elementToType(domNode) === type) {
         return i;
       }
     }
@@ -292,7 +293,7 @@ var cards = {
     if (this._pendingPush) {
       result = this._pendingPush;
     } else if (card) {
-      result = cards.elementToModuleId(card);
+      result = cards.elementToType(card);
     }
     return result;
   },
