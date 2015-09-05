@@ -74,6 +74,11 @@ var cards = {
   _eatingEventsUntilNextCard: false,
 
   /**
+   * Holds promise resolution information to return from the pushCard calls.
+   */
+  _pushedResolves: new Map(),
+
+  /**
    * Initialize and bind ourselves to the DOM which should now be fully loaded.
    */
   init: function(cardsSelector) {
@@ -162,7 +167,13 @@ var cards = {
    * ]
    */
   pushCard: function(type, showMethod, args, placement) {
-    var cardDef = this._cardDefs[type];
+    var resolve,
+        cardDef = this._cardDefs[type],
+        promise = new Promise(function(r) {
+          // Do not care about rejections here for simplicity. Could revisit
+          // if there are errors that should be bubbled out later.
+          resolve = r;
+        });
 
     args = args || {};
 
@@ -177,15 +188,17 @@ var cards = {
 
       require([this.typeToModuleId(type)], (Ctor) => {
         this._cardDefs[type] = Ctor;
-        this.pushCard.apply(this, cbArgs);
+        this.pushCard.apply(this, cbArgs).then(resolve);
       });
-      return;
+      return promise;
     }
 
     this._pendingPush = null;
 
     var domNode = args.cachedNode || new cardDef();
     domNode.classList.add('card');
+
+    this._pushedResolves.set(domNode, resolve);
 
     this.emit('cardCreated', type, domNode);
 
@@ -238,6 +251,8 @@ var cards = {
     if (args.onPushed) {
       args.onPushed(domNode);
     }
+
+    return promise;
   },
 
   _findCardUsingType: function(type) {
@@ -650,6 +665,11 @@ var cards = {
       domNode.onCardVisible();
     }
     this.emit('cardVisible', domNode);
+
+    // Finish out the resolution of the pushCard promise and clean up.
+    var resolve = this._pushedResolves.get(domNode);
+    this._pushedResolves.delete(domNode);
+    resolve(domNode);
   },
 
   /**
