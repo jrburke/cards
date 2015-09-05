@@ -30,14 +30,11 @@ cards_init API section for more details.
 
 ### HTML API
 
-The cards module wants to bind to an HTML structure that looks like so:
+The cards module wants to bind to this HTML:
 
 ```html
 <!-- This div should be sized to the viewport via CSS -->
-<div class="cardsContainer">
-  <!-- This div holds the cards and will end being wider than the viewport -->
-  <div class="cards"></div>
-</div>
+<div class="cards"></div>
 ```
 
 This module is not set up as a custom element that can create this inner DOM

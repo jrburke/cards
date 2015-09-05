@@ -46,12 +46,6 @@ var cards = {
   _zIndex: 0,
 
   /**
-   * The ".cardsContainer" node which serves as the scroll container for the
-   * contained .cards.  It is as wide as the viewport.
-   */
-  cardsContainer: null,
-
-  /**
    * The "#cards" node that holds the cards; it is as wide as all of the cards
    * it contains and has its left offset changed in order to change what card
    * is visible.
@@ -82,14 +76,12 @@ var cards = {
   /**
    * Initialize and bind ourselves to the DOM which should now be fully loaded.
    */
-  init: function(containerSelector) {
-    this.cardsContainer = document
-                        .querySelector(containerSelector || '.cardsContainer');
-    this.cardsNode = this.cardsContainer.querySelector('.cards');
+  init: function(cardsSelector) {
+    this.cardsNode = document.querySelector(cardsSelector || '.cards');
 
-    this.cardsContainer.addEventListener('click',
-                                         this._onMaybeIntercept.bind(this),
-                                         true);
+    this.cardsNode.addEventListener('click',
+                                    this._onMaybeIntercept.bind(this),
+                                    true);
 
     // XXX be more platform detecty. or just add more events. unless the
     // prefixes are already gone with webkit and opera?

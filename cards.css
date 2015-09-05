@@ -1,4 +1,3 @@
-.cardsContainer,
 .cards {
   position: absolute;
   top: 0;
@@ -7,14 +6,14 @@
   height: 100%;
 }
 
-/* Set an explicit z-index of 0 so that .cardsContainer gets its own stacking
+/* Set an explicit z-index of 0 so that .cards gets its own stacking
    context. Without this, the z-index usage inside it by .card nodes could lead
    to a z-index that is quite high and may hide other elements like dialogs,
-   that could be placed outside .cardsContainer at a z-index value, but not with
+   that could be placed outside .cards at a z-index value, but not with
    as high of value as the topmost card. Creating a stacking context for
-   .cardsContainer avoids that by keeping the stacking context for the .card
+   .cards avoids that by keeping the stacking context for the .card
    elements as a child context of this one. */
-.cardsContainer {
+.cards {
   z-index: 0;
 }
 
