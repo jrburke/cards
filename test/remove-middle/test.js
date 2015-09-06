@@ -48,16 +48,13 @@ define(function(require) {
         assert.equal(2, cards._cardStack.length);
         assert.equal(true, qs('third-card').classList.contains('center'));
 
-        cards.once('cardVisible', function() {
+        return cards.removeCardAndSuccessors(qs('third-card'), 'animate')
+        .then(function() {
           assert.equal(true, qs('first-card').classList.contains('center'));
-//todo: re-enable once removeCardAndSuccessors returns promise and the dead
-//node clean happens as part of that.
-//          assert.equal(true, !qs('third-card'));
+          assert.equal(true, !qs('third-card'));
           assert.equal(1, cards._cardStack.length);
           done();
         });
-
-        cards.removeCardAndSuccessors(qs('third-card'), 'animate');
       }).catch(function(err) {
         done(err);
       });

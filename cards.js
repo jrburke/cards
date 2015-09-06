@@ -74,9 +74,10 @@ var cards = {
   _eatingEventsUntilNextCard: false,
 
   /**
-   * Holds promise resolution information to return from the pushCard calls.
+   * Holds promise resolution information that are resolved once the element
+   * placed in the Map reaches the cardVisible event.
    */
-  _pushedResolves: new Map(),
+  _cardVisibleResolves: new Map(),
 
   /**
    * Initialize and bind ourselves to the DOM which should now be fully loaded.
@@ -198,7 +199,7 @@ var cards = {
     var domNode = args.cachedNode || new cardDef();
     domNode.classList.add('card');
 
-    this._pushedResolves.set(domNode, resolve);
+    this._cardVisibleResolves.set(domNode, resolve);
 
     this.emit('cardCreated', type, domNode);
 
@@ -235,7 +236,6 @@ var cards = {
     if ('postInsert' in domNode) {
       domNode.postInsert();
     }
-
     this.emit('postInsert', domNode);
 
     if (showMethod !== 'none') {
@@ -362,17 +362,25 @@ var cards = {
     if (cardDomNode && this._cardStack.length === 1 && !skipDefault) {
       // No card to go to when done, so ask for a default
       // card and continue work once it exists.
-      return cards.pushDefaultCard(() => {
-        this.removeCardAndSuccessors(cardDomNode, showMethod, numCards,
-                                    nextCardSpec);
+      return cards.pushDefaultCard().then(() => {
+        return this.removeCardAndSuccessors(cardDomNode, showMethod, numCards,
+                                            nextCardSpec);
       });
     }
 
-    var firstIndex, iCard, domNode;
+    var firstIndex, domNode, resolve;
+
     if (cardDomNode === undefined) {
       throw new Error('undefined is not a valid card spec!');
     }
-    else if (cardDomNode === null) {
+
+    var promise = new Promise(function(r) {
+      // Do not care about rejections here for simplicity. Could revisit
+      // if there are errors that should be bubbled out later.
+      resolve = r;
+    });
+
+    if (cardDomNode === null) {
       firstIndex = 0;
       // reset the z-index to 0 since we may have cards in the stack that
       // adjusted the z-index (and we are definitively clearing all cards).
@@ -384,6 +392,7 @@ var cards = {
         throw new Error('No card represented by that DOM node');
       }
     }
+
     if (!numCards) {
       numCards = this._cardStack.length - firstIndex;
     }
@@ -404,6 +413,8 @@ var cards = {
       }
 
       if (nextCardIndex > -1) {
+        this._cardVisibleResolves.set(this._cardStack[nextCardIndex], resolve);
+        resolve = undefined;
         this._showCard(nextCardIndex, showMethod, 'back');
       }
     }
@@ -417,31 +428,31 @@ var cards = {
       }
     }
 
-    var deadDomNodes = this._cardStack.splice(
-                          firstIndex, numCards);
-    for (iCard = 0; iCard < deadDomNodes.length; iCard++) {
-      domNode = deadDomNodes[iCard];
+    this._cardStack.splice(firstIndex, numCards);
+
+    // Reset aria-hidden attributes to handle cards visibility.
+    this._setScreenReaderVisibility();
+
+    // If _showCard is not called, then need to finish out the promise now.
+    if (resolve) {
+      resolve();
+    }
+
+    return promise.then(function(node) {
+      // Clean up the removed node.
       try {
-        if (domNode.release) {
-          domNode.release();
+        if (cardDomNode.release) {
+          cardDomNode.release();
         }
       }
       catch (ex) {
         console.warn('Problem cleaning up card:', ex, '\n', ex.stack);
       }
-      switch (showMethod) {
-        case 'animate':
-        case 'immediate': // XXX handle properly
-          this._animatingDeadDomNodes.push(domNode);
-          break;
-        case 'none':
-          domNode.parentNode.removeChild(domNode);
-          break;
-      }
-    }
 
-    // Reset aria-hidden attributes to handle cards visibility.
-    this._setScreenReaderVisibility();
+      cardDomNode.parentNode.removeChild(cardDomNode);
+
+      return node;
+    });
   },
 
   /**
@@ -655,17 +666,6 @@ var cards = {
       if (this._eatingEventsUntilNextCard) {
         this._eatingEventsUntilNextCard = false;
       }
-      if (this._animatingDeadDomNodes.length) {
-        // Use a setTimeout to give the animation some space to settle.
-        setTimeout(() => {
-          this._animatingDeadDomNodes.forEach(function(domNode) {
-            if (domNode.parentNode) {
-              domNode.parentNode.removeChild(domNode);
-            }
-          });
-          this._animatingDeadDomNodes = [];
-        }, 100);
-      }
 
       // If an vertical overlay transition was was disabled, if
       // current node index is an overlay, enable it again.
@@ -702,9 +702,9 @@ var cards = {
 
     // Finish out the resolution of the pushCard promise and clean up. resolve
     // might not exist, in the case of a remove, the previous card is shown.
-    var resolve = this._pushedResolves.get(domNode);
+    var resolve = this._cardVisibleResolves.get(domNode);
     if (resolve) {
-      this._pushedResolves.delete(domNode);
+      this._cardVisibleResolves.delete(domNode);
       resolve(domNode);
     }
   },
