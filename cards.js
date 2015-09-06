@@ -1,5 +1,11 @@
-'use strict';
+/*
+ * cards, an view navigation lib. Version 0.1.0.
+ * Copyright 2013-2015, Mozilla Foundation
+ */
+
 define(function(require, exports, module) {
+
+'use strict';
 
 var cardsInit = require('cards_init'),
     evt = require('evt'),
@@ -315,18 +321,7 @@ var cards = {
     return result;
   },
 
-  /**
-   * Remove the card identified by its DOM node and all the cards to its right.
-   * Pass null to remove all of the cards! If cardDomNode passed, but there
-   * are no cards before it, cards.getDefaultCard is called to set up a before
-   * card.
-   */
   /* @args[
-   *   @param[cardDomNode]{
-   *     The DOM node that is the first card to remove; all of the cards to its
-   *     right will also be removed.  If null is passed it is understood you
-   *     want to remove all cards.
-   *   }
    *   @param[showMethod @oneof[
    *     @case['animate']{
    *       Perform an animated scrolling transition.
@@ -340,10 +335,6 @@ var cards = {
    *       or more cards and the last card will use a transition of 'immediate'.
    *     }
    *   ]]
-   *   @param[numCards #:optional Number]{
-   *     The number of cards to remove.  If omitted, all the cards to the right
-   *     of this card are removed as well.
-   *   }
    *   @param[nextCardSpec #:optional]{
    *     If a showMethod is not 'none', the card to show after removal.
    *   }
@@ -353,32 +344,33 @@ var cards = {
    *   }
    * ]
    */
-  removeCardAndSuccessors: function(cardDomNode, showMethod, numCards,
-                                    nextCardSpec, skipDefault) {
+  /**
+   * Goes "back" from the current active card one card step.
+   * @param  {String} showMethod 'animate' or 'immediate'
+   * @return {Promise} Promise resolved to the next card that becomes visible
+   *         after the back step.
+   */
+  back: function(showMethod, nextCardSpec, skipDefault) {
     if (!this._cardStack.length) {
       return;
     }
+
+    var cardDomNode = this.getActiveCard();
 
     if (cardDomNode && this._cardStack.length === 1 && !skipDefault) {
       // No card to go to when done, so ask for a default
       // card and continue work once it exists.
       return cards.pushDefaultCard().then(() => {
-        return this.removeCardAndSuccessors(cardDomNode, showMethod, numCards,
+        return this.removeCardAndSuccessors(cardDomNode, showMethod,
                                             nextCardSpec);
       });
     }
 
-    var firstIndex, domNode, resolve;
+    var firstIndex;
 
     if (cardDomNode === undefined) {
       throw new Error('undefined is not a valid card spec!');
     }
-
-    var promise = new Promise(function(r) {
-      // Do not care about rejections here for simplicity. Could revisit
-      // if there are errors that should be bubbled out later.
-      resolve = r;
-    });
 
     if (cardDomNode === null) {
       firstIndex = 0;
@@ -393,64 +385,28 @@ var cards = {
       }
     }
 
-    if (!numCards) {
-      numCards = this._cardStack.length - firstIndex;
+    var nextCardIndex = -1;
+    if (nextCardSpec) {
+      nextCardIndex = this._findCard(nextCardSpec);
+    } else if (this._cardStack.length) {
+      nextCardIndex = Math.min(firstIndex - 1, this._cardStack.length - 1);
     }
 
-    if (showMethod === 'none') {
-      // If a 'none' remove, and the remove is for a DOM node that used
-      // anim-overlay, which would have increased the _zIndex when added, adjust
-      // the zIndex appropriately.
-      if (cardDomNode && cardDomNode.classList.contains('anim-overlay')) {
-        this._zIndex -= 10;
-      }
-    } else {
-      var nextCardIndex = -1;
-      if (nextCardSpec) {
-        nextCardIndex = this._findCard(nextCardSpec);
-      } else if (this._cardStack.length) {
-        nextCardIndex = Math.min(firstIndex - 1, this._cardStack.length - 1);
-      }
-
-      if (nextCardIndex > -1) {
-        this._cardVisibleResolves.set(this._cardStack[nextCardIndex], resolve);
-        resolve = undefined;
-        this._showCard(nextCardIndex, showMethod, 'back');
-      }
+    if (nextCardIndex === -1) {
+      throw new Error('No next card');
     }
 
-    // Update activeCardIndex if nodes were removed that would affect its
-    // value.
-    if (firstIndex <= this.activeCardIndex) {
-      this.activeCardIndex -= numCards;
-      if (this.activeCardIndex < -1) {
-        this.activeCardIndex = -1;
-      }
-    }
+    var promise = new Promise((resolve) => {
+      this._cardVisibleResolves.set(this._cardStack[nextCardIndex], resolve);
+    });
 
-    this._cardStack.splice(firstIndex, numCards);
+    this._showCard(nextCardIndex, showMethod, 'back');
 
     // Reset aria-hidden attributes to handle cards visibility.
     this._setScreenReaderVisibility();
 
-    // If _showCard is not called, then need to finish out the promise now.
-    if (resolve) {
-      resolve();
-    }
-
-    return promise.then(function(node) {
-      // Clean up the removed node.
-      try {
-        if (cardDomNode.release) {
-          cardDomNode.release();
-        }
-      }
-      catch (ex) {
-        console.warn('Problem cleaning up card:', ex, '\n', ex.stack);
-      }
-
-      cardDomNode.parentNode.removeChild(cardDomNode);
-
+    return promise.then((node) => {
+      this.removeCard(cardDomNode);
       return node;
     });
   },
@@ -459,18 +415,26 @@ var cards = {
    * Shortcut for removing all the cards
    */
   removeAllCards: function() {
-    return this.removeCardAndSuccessors(null, 'none');
+    for (var i = this._cardStack.length - 1; i > -1; i++) {
+      this.removeCard(this._cardStack[i]);
+    }
   },
 
   /**
-   * Just removes a hidden card from the stack. Only use this for non-visible
-   * cards. This method does not update zIndex, so should only be used on cards
-   * that do not create a new zIndex stacking.
+   * Just removes a card from the stack, no special animations. Use back() if
+   * wanting to remove with animation.
    */
-  removeHiddenCard: function(domNode) {
+  removeCard: function(domNode) {
     var index = this._getIndexForCard(domNode);
-    if (index === this.activeCardIndex) {
-      throw new Error('Cannot remove current card via removeHiddenCard');
+    if (index === -1) {
+      throw new Error('DOM node not found: ' + domNode.nodeName.toLowerCase());
+    }
+
+    // If a 'none' remove, and the remove is for a DOM node that used
+    // anim-overlay, which would have increased the _zIndex when added, adjust
+    // the zIndex appropriately.
+    if (domNode && domNode.classList.contains('anim-overlay')) {
+      this._zIndex -= 10;
     }
 
     try {
@@ -488,11 +452,6 @@ var cards = {
 
     this._cardStack.splice(index, 1);
     domNode.parentNode.removeChild(domNode);
-  },
-
-  removeActiveCard: function(showMethod) {
-    var card = this.getActiveCard();
-    return this.removeCardAndSuccessors(card, showMethod);
   },
 
   getActiveCard: function() {

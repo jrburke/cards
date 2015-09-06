@@ -41,14 +41,14 @@ define(function(require) {
         assert.equal(true, secondCard.classList.contains('before'));
         assert.equal(true, qs('third-card').classList.contains('center'));
 
-        cards.removeHiddenCard(secondCard);
+        cards.removeCard(secondCard);
 
         assert.equal(true, qs('first-card').classList.contains('before'));
         assert.equal(true, !qs('second-card'));
         assert.equal(2, cards._cardStack.length);
         assert.equal(true, qs('third-card').classList.contains('center'));
 
-        return cards.removeCardAndSuccessors(qs('third-card'), 'animate')
+        return cards.back('animate')
         .then(function() {
           assert.equal(true, qs('first-card').classList.contains('center'));
           assert.equal(true, !qs('third-card'));

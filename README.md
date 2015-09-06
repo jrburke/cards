@@ -79,13 +79,19 @@ cards infrastructure:
 
 ## todo
 
-* removeCardAndSuccessors return promise too?
-  implies pushDefaultCard too, other calls to removeCard.
-* remove dead node stuff as part of promise work.
+* test pushDefaultCard
 * do removeCard of 'none' call cardVisible? Just remove 'none' option. Well,
   maybe just have an "insertCard" which is like the 'none' behavior. Important
   in the cards.pushDefaultCard() case, where need to slide it in behind card
   being removed so transition looks nice.
 * Also, replace "left" and "right" placement with "before" and "after".
+
+email cleanup:
+
+* removeCardAndSuccessors -> back()
+* removeActiveCard is just back() now?
+* No numCards on rCAS. No nextspec too?
+* change animation keywords?
+* no skipDefault?
 
 
