@@ -255,6 +255,16 @@ var cards = {
     return promise;
   },
 
+  _getIndexForCard: function(domNode) {
+    for (var i = this._cardStack.length - 1; i >= 0; i--) {
+      var stackNode = this._cardStack[i];
+      if (domNode === stackNode) {
+        return i;
+      }
+    }
+    return -1;
+  },
+
   _findCardUsingType: function(type) {
     for (var i = 0; i < this._cardStack.length; i++) {
       var domNode = this._cardStack[i];
@@ -369,14 +379,8 @@ var cards = {
       this._zIndex = 0;
     }
     else {
-      for (iCard = this._cardStack.length - 1; iCard >= 0; iCard--) {
-        domNode = this._cardStack[iCard];
-        if (domNode === cardDomNode) {
-          firstIndex = iCard;
-          break;
-        }
-      }
-      if (firstIndex === undefined) {
+      firstIndex = this._getIndexForCard(cardDomNode);
+      if (firstIndex === -1) {
         throw new Error('No card represented by that DOM node');
       }
     }
@@ -418,7 +422,9 @@ var cards = {
     for (iCard = 0; iCard < deadDomNodes.length; iCard++) {
       domNode = deadDomNodes[iCard];
       try {
-        domNode.release();
+        if (domNode.release) {
+          domNode.release();
+        }
       }
       catch (ex) {
         console.warn('Problem cleaning up card:', ex, '\n', ex.stack);
@@ -443,6 +449,34 @@ var cards = {
    */
   removeAllCards: function() {
     return this.removeCardAndSuccessors(null, 'none');
+  },
+
+  /**
+   * Just removes a hidden card from the stack. Only use this for non-visible
+   * cards. This method does not update zIndex, so should only be used on cards
+   * that do not create a new zIndex stacking.
+   */
+  removeHiddenCard: function(domNode) {
+    var index = this._getIndexForCard(domNode);
+    if (index === this.activeCardIndex) {
+      throw new Error('Cannot remove current card via removeHiddenCard');
+    }
+
+    try {
+      if (domNode.release) {
+        domNode.release();
+      }
+    }
+    catch (ex) {
+      console.warn('Problem cleaning up card:', ex, '\n', ex.stack);
+    }
+
+    if (index < this.activeCardIndex) {
+      this.activeCardIndex -= 1;
+    }
+
+    this._cardStack.splice(index, 1);
+    domNode.parentNode.removeChild(domNode);
   },
 
   removeActiveCard: function(showMethod) {
@@ -666,10 +700,13 @@ var cards = {
     }
     this.emit('cardVisible', domNode);
 
-    // Finish out the resolution of the pushCard promise and clean up.
+    // Finish out the resolution of the pushCard promise and clean up. resolve
+    // might not exist, in the case of a remove, the previous card is shown.
     var resolve = this._pushedResolves.get(domNode);
-    this._pushedResolves.delete(domNode);
-    resolve(domNode);
+    if (resolve) {
+      this._pushedResolves.delete(domNode);
+      resolve(domNode);
+    }
   },
 
   /**

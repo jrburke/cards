@@ -30,6 +30,8 @@ define(function(require) {
           assert.equal(true, qs('first-card').classList.contains('before'));
           assert.equal(true, qs('second-card').classList.contains('center'));
           done();
+      }).catch(function(err) {
+        done(err);
       });
     });
   });

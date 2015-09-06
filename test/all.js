@@ -2,7 +2,8 @@
   'use strict';
 
   var tests = [
-    'basic'
+    'basic',
+    'remove-middle'
   ];
 
 

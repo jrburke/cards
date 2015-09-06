@@ -14,8 +14,8 @@ body {
 #mochaContainer {
   position: absolute;
   top: 8rem;
-  left: calc((100% - 37rem) / 2);
-  width: 37rem;
+  left: 2rem;
+  width: calc(100% - 4rem);
   background-color: white;
 }
 

@@ -75,3 +75,10 @@ cards infrastructure:
 ## License
 
 [Apache License 2.0](http://www.apache.org/licenses/LICENSE-2.0)
+
+
+## todo
+
+* removeCardAndSuccessors return promise too?
+  implies pushDefaultCard too, other calls to removeCard.
+* remove dead node stuff as part of promise work.
