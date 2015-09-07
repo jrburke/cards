@@ -24,8 +24,8 @@ define(function(require) {
 
   describe('add two cards', function() {
     it('has two cards', function(done) {
-      cards.pushCard('first-card', 'immediate').then(function(element) {
-        return cards.pushCard('second-card', 'animate');
+      cards.pushCard('immediate', 'first-card').then(function(element) {
+        return cards.pushCard('animate', 'second-card');
       }).then(function() {
           assert.equal(true, qs('first-card').classList.contains('before'));
           assert.equal(true, qs('second-card').classList.contains('center'));

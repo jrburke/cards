@@ -37,13 +37,12 @@ var cards = {
   _cardStack: [],
 
   activeCardIndex: -1,
-  /*
-   * @oneof[null @listof[cardName modeName]]{
-   *   If a lazy load is causing us to have to wait before we push a card, this
-   *   is the type of card we are planning to push.
-   * }
+
+  /**
+   * If a lazy load is causing us to have to wait before we insert a card, this
+   * is the type of card we are planning to insert.
    */
-  _pendingPush: null,
+  _pendingInsert: null,
 
   /**
    * Cards can stack on top of each other, make sure the stacked set is
@@ -152,10 +151,6 @@ var cards = {
    *     @case['immediate']{
    *       Immediately warp to the card without animation.
    *     }
-   *     @case['none']{
-   *       Don't touch the view at all, just insert the card in the DOM. May
-   *       not be the front-most card.
-   *     }
    *   ]]
    *   @param[args Object]{
    *     An arguments object to provide to the card's constructor when
@@ -178,7 +173,21 @@ var cards = {
    *   }
    * ]
    */
-  pushCard: function(type, showMethod, args, placement) {
+  pushCard: function(showMethod, type, args, placement) {
+    return this.insertCard(type, args, placement).then((domNode) => {
+      var promise = new Promise((resolve) => {
+        // Do not care about rejections here for simplicity. Could revisit
+        // if there are errors that should be bubbled out later.
+        this._cardVisibleResolves.set(domNode, resolve);
+      });
+
+      this.showCard(this.getIndexForCard(domNode), showMethod, 'forward');
+
+      return promise;
+    });
+  },
+
+  insertCard: function(type, args, placement) {
     var resolve,
         cardDef = this._cardDefs[type],
         promise = new Promise(function(r) {
@@ -190,29 +199,29 @@ var cards = {
     args = args || {};
 
     if (!cardDef) {
-      var cbArgs = Array.slice(arguments);
-      this._pendingPush = [type];
+      var cbArgs = Array.from(arguments);
+      this._pendingInsert = [type];
 
-      // Only eat clicks if the card will be visibly displayed.
-      if (showMethod !== 'none') {
-        this.eatEventsUntilNextCard();
-      }
+      // Avoid clicks while loading a card, to avoid insertion orders from
+      // going haywire. The event eating is just binary, so best to not also
+      // trigger a bunch of insertions programmatically, wait for promise
+      // resolutions.
+      this.eatEventsUntilNextCard();
 
       require([this.typeToModuleId(type)], (Ctor) => {
         this._cardDefs[type] = Ctor;
-        this.pushCard.apply(this, cbArgs).then(resolve);
+        this.insertCard.apply(this, cbArgs).then((domNode) => {
+          this.stopEatingEvents();
+          resolve(domNode);
+        });
       });
       return promise;
     }
 
-    this._pendingPush = null;
+    this._pendingInsert = null;
 
     var domNode = args.cachedNode || new cardDef();
     domNode.classList.add('card');
-
-    if (showMethod !== 'none') {
-      this._cardVisibleResolves.set(domNode, resolve);
-    }
 
     this.emit('cardCreated', type, domNode);
 
@@ -261,22 +270,11 @@ var cards = {
       domNode.clientWidth;
     }
 
-    if (showMethod !== 'none') {
-      this._showCard(cardIndex, showMethod, 'forward');
-    }
-
-    if (args.onPushed) {
-      args.onPushed(domNode);
-    }
-
-    if (showMethod === 'none') {
-      resolve(domNode);
-    }
-
+    resolve(domNode);
     return promise;
   },
 
-  _getIndexForCard: function(domNode) {
+  getIndexForCard: function(domNode) {
     for (var i = this._cardStack.length - 1; i >= 0; i--) {
       var stackNode = this._cardStack[i];
       if (domNode === stackNode) {
@@ -295,11 +293,11 @@ var cards = {
     var result = null,
         card = this.getActiveCard();
 
-    // Favor any _pendingPush value as it is about to
+    // Favor any _pendingInsert value as it is about to
     // become current, just waiting on an async cycle
     // to finish. Otherwise use current card value.
-    if (this._pendingPush) {
-      result = this._pendingPush;
+    if (this._pendingInsert) {
+      result = this._pendingInsert;
     } else if (card) {
       result = cards.elementToType(card);
     }
@@ -313,11 +311,6 @@ var cards = {
    *     }
    *     @case['immediate']{
    *       Immediately warp to the card without animation.
-   *     }
-   *     @case['none']{
-   *       Remove the nodes immediately, don't do anything about the view
-   *       position.  You only want to do this if you are going to push one
-   *       or more cards and the last card will use a transition of 'immediate'.
    *     }
    *   ]]
    * ]
@@ -342,7 +335,7 @@ var cards = {
 
       // No card to go to when done, so ask for a default
       // card and continue work once it exists.
-      return cards.pushDefaultCard().then(() => {
+      return cards.insertDefaultCard().then(() => {
         return this.back(showMethod);
       });
     }
@@ -358,7 +351,7 @@ var cards = {
       this._cardVisibleResolves.set(this._cardStack[nextCardIndex], resolve);
     });
 
-    this._showCard(nextCardIndex, showMethod, 'back');
+    this.showCard(nextCardIndex, showMethod, 'back');
 
     // Reset aria-hidden attributes to handle cards visibility.
     this._setScreenReaderVisibility();
@@ -383,14 +376,13 @@ var cards = {
    * wanting to remove with animation.
    */
   removeCard: function(domNode) {
-    var index = this._getIndexForCard(domNode);
+    var index = this.getIndexForCard(domNode);
     if (index === -1) {
       throw new Error('DOM node not found: ' + domNode.nodeName.toLowerCase());
     }
 
-    // If a 'none' remove, and the remove is for a DOM node that used
-    // anim-overlay, which would have increased the _zIndex when added, adjust
-    // the zIndex appropriately.
+    // If the remove is for a DOM node that used anim-overlay, which would have
+    // increased the _zIndex when added, adjust the zIndex appropriately.
     if (domNode && domNode.classList.contains('anim-overlay')) {
       this._zIndex -= 10;
     }
@@ -416,7 +408,7 @@ var cards = {
     return this._cardStack[this.activeCardIndex];
   },
 
-  _showCard: function(cardIndex, showMethod, navDirection) {
+  showCard: function(cardIndex, showMethod, navDirection) {
     // Do not do anything if this is a show card for the current card.
     if (cardIndex === this.activeCardIndex) {
       return;
@@ -500,11 +492,7 @@ var cards = {
       cardsNode.clientWidth;
       // explicitly clear since there will be no animation
       this._eatingEventsUntilNextCard = false;
-    }
-    else if (showMethod === 'none') {
-      // do not set _eatingEventsUntilNextCard, but don't clear it either.
-    }
-    else {
+    } else {
       this._transitionCount = (beginNode && endNode) ? 2 : 1;
       this._eatingEventsUntilNextCard = true;
     }

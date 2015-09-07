@@ -82,8 +82,16 @@ cards infrastructure:
 * Place the animation style in the pushCard call?
 * Also, replace "left" and "right" placement with "before" and "after"? "beforeHistory"
 
+
+* next
+* previous
+* nextAsHistory
+* previousAsFuture
+
+
 email cleanup:
 
+* pushCard now has showMethod first.
 * removeCardAndSuccessors -> back()
 * removeActiveCard is just back() now?
 * No numCards on rCAS. No nextspec too?
@@ -91,6 +99,8 @@ email cleanup:
 * no skipDefault: only confirm needs it, but no longer applies, startup case is now message in setup_account_info
 * this.restoreCard: replace with code that removeCards between most recent and
   the return card.
+* onPushed removed, use the promise instead.
+* 'none' is not insertCard
 
 
 

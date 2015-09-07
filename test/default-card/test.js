@@ -25,8 +25,8 @@ define('cards_init', function(require) {
       return 'element!' + type;
     };
 
-    cards.pushDefaultCard = function() {
-      return cards.pushCard('first-card', 'none', {}, 'leftHistory');
+    cards.insertDefaultCard = function() {
+      return cards.insertCard('first-card', {}, 'leftHistory');
     };
 
   };
@@ -44,7 +44,7 @@ define(function(require) {
 
   describe('default card', function() {
     it('add second-card, go back to first-card', function(done) {
-      cards.pushCard('second-card', 'immediate').then(function(element) {
+      cards.pushCard('immediate', 'second-card').then(function(element) {
         return cards.back('animate');
       }).then(function() {
           assert.equal(true, qs('first-card').classList.contains('center'));

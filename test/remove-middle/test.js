@@ -31,10 +31,10 @@ define(function(require) {
 
   describe('remove middle card', function() {
     it('Add three cards, remove second one', function(done) {
-      cards.pushCard('first-card', 'immediate').then(function(element) {
-        return cards.pushCard('second-card', 'animate');
+      cards.pushCard('immediate', 'first-card').then(function(element) {
+        return cards.pushCard('animate', 'second-card');
       }).then(function() {
-        return cards.pushCard('third-card', 'animate');
+        return cards.pushCard('animate', 'third-card');
       }).then(function() {
         var secondCard = qs('second-card');
         assert.equal(true, qs('first-card').classList.contains('before'));
