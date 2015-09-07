@@ -100,7 +100,7 @@ email cleanup:
 * this.restoreCard: replace with code that removeCards between most recent and
   the return card.
 * onPushed removed, use the promise instead.
-* 'none' is not insertCard
-
+* 'none' is now insertCard
+* 'left' is 'previousAsFuture' and 'right' is 'next'.
 
 

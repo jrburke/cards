@@ -26,7 +26,7 @@ define('cards_init', function(require) {
     };
 
     cards.insertDefaultCard = function() {
-      return cards.insertCard('first-card', {}, 'leftHistory');
+      return cards.insertCard('first-card', {}, 'previous');
     };
 
   };

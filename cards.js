@@ -32,7 +32,8 @@ var cards = {
   _cardDefs: {},
 
   /*
-   * Existing cards, left-to-right, new cards getting pushed onto the right.
+   * Existing cards, in an LTR outlook, left-to-right, new cards getting pushed
+   * onto the right (or 'next' in generic bidi context).
    */
   _cardStack: [],
 
@@ -51,9 +52,7 @@ var cards = {
   _zIndex: 0,
 
   /**
-   * The "#cards" node that holds the cards; it is as wide as all of the cards
-   * it contains and has its left offset changed in order to change what card
-   * is visible.
+   * The ".cards" node that holds the cards.
    */
   cardsNode: null,
 
@@ -160,13 +159,15 @@ var cards = {
    *     @case[undefined]{
    *       The card gets pushed onto the end of the stack.
    *     }
-   *     @case['left']{
-   *       The card gets inserted to the left of the current card.
+   *     @case['previousAsFuture']{
+   *       The card gets inserted to the "left" of the activeCard, but
+   *       is considered a future card, not a historical card for th
    *     }
-   *     @case['right']{
-   *       The card gets inserted to the right of the current card.
+   *     @case['next']{
+   *       The card gets inserted to the right of the current card, and treaded
+   *       as the next, future card relative to the activeCard.
    *     }
-   *     @case['leftHistory']{
+   *     @case['previous']{
    *       The card gets inserted to the left of the current card, and treated
    *       as a historical card for the activeCard.
    *     }
@@ -234,11 +235,11 @@ var cards = {
       cardIndex = this._cardStack.length;
       insertBuddy = null;
       domNode.classList.add(cardIndex === 0 ? 'before' : 'after');
-    } else if (placement === 'left') {
+    } else if (placement === 'previousAsFuture') {
       cardIndex = this.activeCardIndex++;
       insertBuddy = this.cardsNode.children[cardIndex];
       domNode.classList.add('before');
-    } else if (placement === 'right') {
+    } else if (placement === 'next') {
       cardIndex = this.activeCardIndex + 1;
       if (cardIndex >= this._cardStack.length) {
         insertBuddy = null;
@@ -246,7 +247,7 @@ var cards = {
         insertBuddy = this.cardsNode.children[cardIndex];
       }
       domNode.classList.add('after');
-    } else if (placement === 'leftHistory') {
+    } else if (placement === 'previous') {
       cardIndex = Math.max(this.activeCardIndex - 1, 0);
       insertBuddy = this.cardsNode.children[this.activeCardIndex];
       domNode.classList.add('before');
