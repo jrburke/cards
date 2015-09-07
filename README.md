@@ -79,13 +79,8 @@ cards infrastructure:
 
 ## todo
 
-* do removeCard of 'none' call cardVisible? Just remove 'none' option. Well,
-  maybe just have an "insertCard" which is like the 'none' behavior. Important
-  in the cards.pushDefaultCard() case, where need to slide it in behind card
-  being removed so transition looks nice.
-* Also, replace "left" and "right" placement with "before" and "after"? "beforeHistory"
-* check zIndex resetting.
 * Place the animation style in the pushCard call?
+* Also, replace "left" and "right" placement with "before" and "after"? "beforeHistory"
 
 email cleanup:
 

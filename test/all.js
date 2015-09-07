@@ -4,7 +4,10 @@
   var tests = [
     'basic',
     'remove-middle',
-    'default-card'
+    'default-card',
+
+    // Do this one last, it takes longer
+    'z-index'
   ];
 
 

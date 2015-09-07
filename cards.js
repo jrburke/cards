@@ -286,36 +286,6 @@ var cards = {
     return -1;
   },
 
-  _findCardUsingType: function(type) {
-    for (var i = 0; i < this._cardStack.length; i++) {
-      var domNode = this._cardStack[i];
-      if (cards.elementToType(domNode) === type) {
-        return i;
-      }
-    }
-  },
-
-  _findCard: function(query, skipFail) {
-    var result;
-    if (typeof query === 'string') {
-      result = this._findCardUsingType(query, skipFail);
-    } else if (typeof(query) === 'number') { // index number
-      result = query;
-    } else {
-      // query is a DOM node in this case
-      result = this._cardStack.indexOf(query);
-    }
-
-    if (result > -1) {
-      return result;
-    } else if (!skipFail) {
-      throw new Error('Unable to find card with query:', query);
-    } else {
-      // Returning undefined explicitly so that index comparisons are correct.
-      return undefined;
-    }
-  },
-
   isVisible: function(domNode) {
     return !!(domNode &&
               domNode.classList.contains('center'));
@@ -507,7 +477,6 @@ var cards = {
       } else {
         this.emit('endCardChosen', endNode);
         endNode = null;
-        this._zIndex -= 10;
       }
     }
 
