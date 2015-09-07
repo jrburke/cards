@@ -1,0 +1,16 @@
+first-card {
+  background-color: red;
+}
+
+second-card {
+  background-color: blue;
+}
+
+.card h1 {
+  width: 100%;
+  text-align: center;
+  font-family: inherit;
+  background: white;
+  margin: 0;
+  padding: 1rem;
+}

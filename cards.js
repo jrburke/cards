@@ -153,7 +153,8 @@ var cards = {
    *       Immediately warp to the card without animation.
    *     }
    *     @case['none']{
-   *       Don't touch the view at all.
+   *       Don't touch the view at all, just insert the card in the DOM. May
+   *       not be the front-most card.
    *     }
    *   ]]
    *   @param[args Object]{
@@ -169,6 +170,10 @@ var cards = {
    *     }
    *     @case['right']{
    *       The card gets inserted to the right of the current card.
+   *     }
+   *     @case['leftHistory']{
+   *       The card gets inserted to the left of the current card, and treated
+   *       as a historical card for the activeCard.
    *     }
    *   }
    * ]
@@ -205,7 +210,9 @@ var cards = {
     var domNode = args.cachedNode || new cardDef();
     domNode.classList.add('card');
 
-    this._cardVisibleResolves.set(domNode, resolve);
+    if (showMethod !== 'none') {
+      this._cardVisibleResolves.set(domNode, resolve);
+    }
 
     this.emit('cardCreated', type, domNode);
 
@@ -218,13 +225,11 @@ var cards = {
       cardIndex = this._cardStack.length;
       insertBuddy = null;
       domNode.classList.add(cardIndex === 0 ? 'before' : 'after');
-    }
-    else if (placement === 'left') {
+    } else if (placement === 'left') {
       cardIndex = this.activeCardIndex++;
       insertBuddy = this.cardsNode.children[cardIndex];
       domNode.classList.add('before');
-    }
-    else if (placement === 'right') {
+    } else if (placement === 'right') {
       cardIndex = this.activeCardIndex + 1;
       if (cardIndex >= this._cardStack.length) {
         insertBuddy = null;
@@ -232,7 +237,13 @@ var cards = {
         insertBuddy = this.cardsNode.children[cardIndex];
       }
       domNode.classList.add('after');
+    } else if (placement === 'leftHistory') {
+      cardIndex = Math.max(this.activeCardIndex - 1, 0);
+      insertBuddy = this.cardsNode.children[this.activeCardIndex];
+      domNode.classList.add('before');
+      this.activeCardIndex += 1;
     }
+
     this._cardStack.splice(cardIndex, 0, domNode);
 
     if (!args.cachedNode) {
@@ -244,18 +255,22 @@ var cards = {
     }
     this.emit('postInsert', domNode);
 
-    if (showMethod !== 'none') {
-      // make sure the reflow sees the new node so that the animation
-      // later is smooth.
-      if (!args.cachedNode) {
-        domNode.clientWidth;
-      }
+    // make sure the reflow sees the new node so that the animation
+    // later is smooth.
+    if (!args.cachedNode) {
+      domNode.clientWidth;
+    }
 
+    if (showMethod !== 'none') {
       this._showCard(cardIndex, showMethod, 'forward');
     }
 
     if (args.onPushed) {
       args.onPushed(domNode);
+    }
+
+    if (showMethod === 'none') {
+      resolve(domNode);
     }
 
     return promise;
@@ -335,68 +350,41 @@ var cards = {
    *       or more cards and the last card will use a transition of 'immediate'.
    *     }
    *   ]]
-   *   @param[nextCardSpec #:optional]{
-   *     If a showMethod is not 'none', the card to show after removal.
-   *   }
-   *   @param[skipDefault #:optional Boolean]{
-   *     Skips the default pushCard if the removal ends up with no more
-   *     cards in the stack.
-   *   }
    * ]
    */
   /**
    * Goes "back" from the current active card one card step.
-   * @param  {String} showMethod 'animate' or 'immediate'
+   * @param  {String} showMethod 'animate' or 'immediate'.
    * @return {Promise} Promise resolved to the next card that becomes visible
    *         after the back step.
    */
-  back: function(showMethod, nextCardSpec, skipDefault) {
+  back: function(showMethod) {
     if (!this._cardStack.length) {
       return;
     }
 
     var cardDomNode = this.getActiveCard();
 
-    if (cardDomNode && this._cardStack.length === 1 && !skipDefault) {
-      // No card to go to when done, so ask for a default
-      // card and continue work once it exists.
-      return cards.pushDefaultCard().then(() => {
-        return this.removeCardAndSuccessors(cardDomNode, showMethod,
-                                            nextCardSpec);
-      });
-    }
-
-    var firstIndex;
-
-    if (cardDomNode === undefined) {
-      throw new Error('undefined is not a valid card spec!');
-    }
-
-    if (cardDomNode === null) {
-      firstIndex = 0;
+    if (this._cardStack.length === 1) {
       // reset the z-index to 0 since we may have cards in the stack that
       // adjusted the z-index (and we are definitively clearing all cards).
       this._zIndex = 0;
-    }
-    else {
-      firstIndex = this._getIndexForCard(cardDomNode);
-      if (firstIndex === -1) {
-        throw new Error('No card represented by that DOM node');
-      }
+
+      // No card to go to when done, so ask for a default
+      // card and continue work once it exists.
+      return cards.pushDefaultCard().then(() => {
+        return this.back(showMethod);
+      });
     }
 
-    var nextCardIndex = -1;
-    if (nextCardSpec) {
-      nextCardIndex = this._findCard(nextCardSpec);
-    } else if (this._cardStack.length) {
-      nextCardIndex = Math.min(firstIndex - 1, this._cardStack.length - 1);
-    }
-
+    var nextCardIndex = this.activeCardIndex - 1;
     if (nextCardIndex === -1) {
       throw new Error('No next card');
     }
 
     var promise = new Promise((resolve) => {
+      // Do not care about rejections here for simplicity. Could revisit if
+      // there are errors that should be bubbled out later.
       this._cardVisibleResolves.set(this._cardStack[nextCardIndex], resolve);
     });
 
@@ -471,12 +459,8 @@ var cards = {
       activeElement.blur();
     }
 
-    if (cardIndex > this._cardStack.length - 1) {
-      // Some cards were removed, adjust.
-      cardIndex = this._cardStack.length - 1;
-    }
     if (this.activeCardIndex > this._cardStack.length - 1) {
-      this.activeCardIndex = -1;
+      throw new Error('Invalid activeCardIndex: ' + this.activeIndex);
     }
 
     if (this.activeCardIndex === -1) {

@@ -79,12 +79,13 @@ cards infrastructure:
 
 ## todo
 
-* test pushDefaultCard
 * do removeCard of 'none' call cardVisible? Just remove 'none' option. Well,
   maybe just have an "insertCard" which is like the 'none' behavior. Important
   in the cards.pushDefaultCard() case, where need to slide it in behind card
   being removed so transition looks nice.
-* Also, replace "left" and "right" placement with "before" and "after".
+* Also, replace "left" and "right" placement with "before" and "after"? "beforeHistory"
+* check zIndex resetting.
+* Place the animation style in the pushCard call?
 
 email cleanup:
 
@@ -92,6 +93,9 @@ email cleanup:
 * removeActiveCard is just back() now?
 * No numCards on rCAS. No nextspec too?
 * change animation keywords?
-* no skipDefault?
+* no skipDefault: only confirm needs it, but no longer applies, startup case is now message in setup_account_info
+* this.restoreCard: replace with code that removeCards between most recent and
+  the return card.
+
 
 

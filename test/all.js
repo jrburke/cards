@@ -3,7 +3,8 @@
 
   var tests = [
     'basic',
-    'remove-middle'
+    'remove-middle',
+    'default-card'
   ];
 
 
