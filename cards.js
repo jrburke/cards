@@ -57,12 +57,6 @@ var cards = {
   cardsNode: null,
 
   /**
-   * The DOM nodes that should be removed from their parent when our current
-   * transition ends.
-   */
-  _animatingDeadDomNodes: [],
-
-  /**
    * Tracks the number of transition events per card animation. Since each
    * animation ends up with two transitionend events since two cards are
    * moving, need to wait for the last one to be finished before doing
@@ -494,7 +488,12 @@ var cards = {
       // explicitly clear since there will be no animation
       this._eatingEventsUntilNextCard = false;
     } else {
-      this._transitionCount = (beginNode && endNode) ? 2 : 1;
+      this._transitionCount = (beginNode && endNode &&
+                              // If going back to a card that used to have an
+                              // anim-overlay after it, but that card was
+                              // rmoved, the endNode is already in center
+                              // position, so will only get one card animating.
+                              !endNode.classList.contains('center')) ? 2 : 1;
       this._eatingEventsUntilNextCard = true;
     }
 
