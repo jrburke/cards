@@ -367,7 +367,7 @@ var cards = {
    * Shortcut for removing all the cards
    */
   removeAllCards: function() {
-    for (var i = this._cardStack.length - 1; i > -1; i++) {
+    for (var i = this._cardStack.length - 1; i > -1; i--) {
       this.removeCard(this._cardStack[i]);
     }
   },
@@ -397,7 +397,7 @@ var cards = {
       console.warn('Problem cleaning up card:', ex, '\n', ex.stack);
     }
 
-    if (index < this.activeCardIndex) {
+    if (index <= this.activeCardIndex) {
       this.activeCardIndex -= 1;
     }
 

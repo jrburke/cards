@@ -54,6 +54,12 @@ cards.init();
 cards.pushCard();
 cards.removeCard();
 
+* next
+* previous
+* nextAsHistory
+* previousAsFuture
+
+
 ## cards_init API.
 
 xx
@@ -79,15 +85,8 @@ cards infrastructure:
 
 ## todo
 
-* Place the animation style in the pushCard call?
-* Also, replace "left" and "right" placement with "before" and "after"? "beforeHistory"
-
-
-* next
-* previous
-* nextAsHistory
-* previousAsFuture
-
+* removeAllCards, check that activeIndex set correctly, can add more cards.
+* removeCard on active card.
 
 email cleanup:
 

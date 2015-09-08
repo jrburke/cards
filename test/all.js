@@ -5,6 +5,7 @@
     'basic',
     'remove-middle',
     'default-card',
+    'remove-all-add',
 
     // Do this one last, it takes longer
     'z-index'
