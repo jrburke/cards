@@ -44,15 +44,15 @@ define(function(require) {
 
   describe('default card', function() {
     it('add second-card, go back to first-card', function(done) {
-      cards.pushCard('immediate', 'second-card').then(function(element) {
-        return cards.back('animate');
-      }).then(function() {
-          assert.equal(true, qs('first-card').classList.contains('center'));
-          assert.equal(true, !qs('second-card'));
-          done();
-      }).catch(function(err) {
-        done(err);
-      });
+      co(function* () {
+        yield cards.pushCard('immediate', 'second-card');
+        yield cards.back('animate');
+
+        assert.equal(true, qs('first-card').classList.contains('center'));
+        assert.equal(true, !qs('second-card'));
+      })
+      .then(done)
+      .catch(done);
     });
   });
 

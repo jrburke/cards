@@ -420,8 +420,11 @@ var cards = {
     // Do not want to remove the domNode, but the one past it.
     startIndex += 1;
 
-    for (var i = startIndex; i < this.activeCardIndex; i++) {
-      this.removeCard(this._cardStack[i]);
+    // removeCard adjusts activeCardIndex, and want to stop when the
+    // activeCardIndex gets to the startIndex, which is one greater than
+    // the target domNode.
+    while (this.activeCardIndex > startIndex) {
+      this.removeCard(this._cardStack[startIndex]);
     }
   },
 

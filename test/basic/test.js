@@ -24,15 +24,15 @@ define(function(require) {
 
   describe('add two cards', function() {
     it('has two cards', function(done) {
-      cards.pushCard('immediate', 'first-card').then(function(element) {
-        return cards.pushCard('animate', 'second-card');
-      }).then(function() {
-          assert.equal(true, qs('first-card').classList.contains('before'));
-          assert.equal(true, qs('second-card').classList.contains('center'));
-          done();
-      }).catch(function(err) {
-        done(err);
-      });
+      co(function* () {
+        yield cards.pushCard('immediate', 'first-card');
+        yield cards.pushCard('animate', 'second-card');
+
+        assert.equal(true, qs('first-card').classList.contains('before'));
+        assert.equal(true, qs('second-card').classList.contains('center'));
+      })
+      .then(done)
+      .catch(done);
     });
   });
 

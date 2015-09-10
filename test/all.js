@@ -6,6 +6,7 @@
     'remove-middle',
     'default-card',
     'remove-all-add',
+    'remove-between-active',
     'anim-overlay-back-then',
 
     // Do this one last, it takes longer

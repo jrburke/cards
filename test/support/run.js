@@ -14,6 +14,7 @@ require.config({
     cards: '../../cards',
     cards_init: '../support/cards_init',
     chai: '../support/chai',
+    co: '../support/co',
     element: '../support/element',
     evt: '../../lib/evt',
     mocha: '../../node_modules/mocha/mocha',
@@ -34,8 +35,9 @@ if (urlArgs) {
   });
 }
 
-var assert;
-require(['chai', 'mocha'], function(chai) {
+var assert, co;
+require(['chai', 'co', 'mocha'], function(chai, localCo) {
+  co = localCo;
   mocha.setup('bdd');
   assert = chai.assert;
   require(['test'], function(test) {

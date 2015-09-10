@@ -41,22 +41,21 @@ define(function(require) {
    */
   describe('anim-overlay-back-then', function() {
     it('anim-overlay, add card, back, trigger then()', function(done) {
-      cards.pushCard('immediate', 'first-card').then(function(element) {
-        return cards.pushCard('animate', 'second-card');
-      }).then(function() {
-        return cards.pushCard('animate', 'third-card');
-      }).then(function() {
-        return cards.removeCard(qs('second-card'));
-      }).then(function() {
-        return cards.back('then');
-      }).then(function() {
+      co(function* () {
+        yield cards.pushCard('immediate', 'first-card');
+        yield cards.pushCard('animate', 'second-card');
+        yield cards.pushCard('animate', 'third-card');
+
+        cards.removeCard(qs('second-card'));
+
+        yield cards.back('then');
+
         assert.equal(true, qs('first-card').classList.contains('center'));
         assert.equal(true, !qs('second-card'));
         assert.equal(1, cards._cardStack.length);
-        done();
-      }).catch(function(err) {
-        done(err);
-      });
+      })
+      .then(done)
+      .catch(done);
     });
   });
 

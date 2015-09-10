@@ -34,71 +34,46 @@ define(function(require) {
     it('Add three cards, remove second one', function(done) {
       this.timeout(8000);
 
-      cards.pushCard('immediate', 'first-card').then(function(element) {
+      co(function* () {
+        yield cards.pushCard('immediate', 'first-card');
         //z-index
-        return cards.pushCard('animate', 'second-card');
-      }).then(function() {
-        return cards.pushCard('animate', 'third-card');
-      }).then(function() {
+        yield cards.pushCard('animate', 'second-card');
+        yield cards.pushCard('animate', 'third-card');
         //z-index
-        return cards.pushCard('animate', 'second-card');
-      }).then(function() {
-        return cards.pushCard('animate', 'first-card');
-      }).then(function() {
-        return cards.pushCard('animate', 'third-card');
-      }).then(function() {
+        yield cards.pushCard('animate', 'second-card');
+        yield cards.pushCard('animate', 'first-card');
+        yield cards.pushCard('animate', 'third-card');
         //z-index
-        return cards.pushCard('animate', 'second-card');
-      }).then(function() {
-        return cards.pushCard('animate', 'third-card');
-      }).then(function() {
-        return cards.pushCard('animate', 'third-card');
-      }).then(function() {
-        return cards.pushCard('animate', 'first-card');
-      }).then(function() {
-        return cards.back('animate');
-      }).then(function() {
-        return cards.back('animate');
-      }).then(function() {
-        return cards.back('animate');
-      }).then(function() {
-        return cards.back('animate');
-      }).then(function() {
+        yield cards.pushCard('animate', 'second-card');
+        yield cards.pushCard('animate', 'third-card');
+        yield cards.pushCard('animate', 'third-card');
+        yield cards.pushCard('animate', 'first-card');
+        yield cards.back('animate');
+        yield cards.back('animate');
+        yield cards.back('animate');
+        yield cards.back('animate');
         //z-index
-        return cards.pushCard('animate', 'second-card');
-      }).then(function() {
-        return cards.pushCard('animate', 'third-card');
-      }).then(function() {
-        return cards.pushCard('animate', 'first-card');
-      }).then(function() {
-        return cards.back('animate');
-      }).then(function() {
-        return cards.back('animate');
-      }).then(function() {
-        return cards.back('animate');
-      }).then(function() {
-        return cards.back('animate');
-      }).then(function() {
+        yield cards.pushCard('animate', 'second-card');
+        yield cards.pushCard('animate', 'third-card');
+        yield cards.pushCard('animate', 'first-card');
+        yield cards.back('animate');
+        yield cards.back('animate');
+        yield cards.back('animate');
+        yield cards.back('animate');
         //z-index
-        return cards.pushCard('animate', 'second-card');
-      }).then(function() {
-        return cards.back('animate');
-      }).then(function() {
-        return cards.back('animate');
-      }).then(function() {
-        return cards.back('animate');
-      }).then(function() {
-        return cards.back('animate');
-      }).then(function() {
-        return cards.back('animate');
-      }).then(function() {
+        yield cards.pushCard('animate', 'second-card');
+        yield cards.back('animate');
+        yield cards.back('animate');
+        yield cards.back('animate');
+        yield cards.back('animate');
+        yield cards.back('animate');
+
         assert.equal(1, document.querySelectorAll('.card').length);
         assert.equal(true, !!qs('first-card'));
         assert.equal(0, cards._zIndex);
-        done();
-      }).catch(function(err) {
-        done(err);
-      });
+      })
+      .then(done)
+      .catch(done);
     });
   });
 

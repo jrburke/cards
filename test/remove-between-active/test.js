@@ -32,25 +32,22 @@ define(function(require) {
   describe('remove middle card', function() {
     it('Add three cards, remove second one', function(done) {
       co(function* () {
-        yield cards.pushCard('immediate', 'first-card');
+        var firstCard = yield cards.pushCard('immediate', 'first-card');
+        yield cards.pushCard('animate', 'second-card');
+        yield cards.pushCard('animate', 'first-card');
         yield cards.pushCard('animate', 'second-card');
         yield cards.pushCard('animate', 'third-card');
 
-        var secondCard = qs('second-card');
-        assert.equal(true, qs('first-card').classList.contains('before'));
-        assert.equal(true, secondCard.classList.contains('before'));
-        assert.equal(true, qs('third-card').classList.contains('center'));
+        cards.removeCardsBetweenActive(firstCard);
 
-        cards.removeCard(secondCard);
-
-        assert.equal(true, qs('first-card').classList.contains('before'));
-        assert.equal(true, !qs('second-card'));
         assert.equal(2, cards._cardStack.length);
-        assert.equal(true, qs('third-card').classList.contains('center'));
+        assert.equal(true, !!qs('first-card'));
+        assert.equal(true, !qs('second-card'));
+        assert.equal(true, !!qs('third-card'));
 
         yield cards.back('animate');
 
-        assert.equal(true, qs('first-card').classList.contains('center'));
+        assert.equal(true, !!qs('first-card'));
         assert.equal(true, !qs('third-card'));
         assert.equal(1, cards._cardStack.length);
       })
