@@ -47,7 +47,11 @@ var cards = {
 
   /**
    * Cards can stack on top of each other, make sure the stacked set is
-   * visible over the lower sets.
+   * visible over the lower sets. It is possible for this to not return to a
+   * zero value if anim-overlay cards are removeCard()'d directly and not
+   * through usage of back(). The long term solution is to allow instances of
+   * card stacks inside cards, but that is a bigger overhaul. This will get
+   * reset to zero though if all cards are removed and the stack starts over.
    */
   _zIndex: 0,
 
@@ -220,6 +224,8 @@ var cards = {
 
     this.emit('cardCreated', type, domNode);
 
+    domNode.args = args || {};
+
     if (args && domNode.onArgs) {
       domNode.onArgs(args);
     }
@@ -358,15 +364,6 @@ var cards = {
   },
 
   /**
-   * Shortcut for removing all the cards
-   */
-  removeAllCards: function() {
-    for (var i = this._cardStack.length - 1; i > -1; i--) {
-      this.removeCard(this._cardStack[i]);
-    }
-  },
-
-  /**
    * Just removes a card from the stack, no special animations. Use back() if
    * wanting to remove with animation.
    */
@@ -397,6 +394,35 @@ var cards = {
 
     this._cardStack.splice(index, 1);
     domNode.parentNode.removeChild(domNode);
+  },
+
+  /**
+   * Shortcut for removing all the cards
+   */
+  removeAllCards: function() {
+    for (var i = this._cardStack.length - 1; i > -1; i--) {
+      this.removeCard(this._cardStack[i]);
+    }
+  },
+
+  /**
+   * Remove cards between the active card and the domNode that represents
+   * another card. This allows back() to work nicely between active card and the
+   * supplied card domNode.
+   * @param  {Element} domNode
+   */
+  removeCardsBetweenActive: function(domNode) {
+    var startIndex = this.getIndexForCard(domNode);
+    if (startIndex === -1) {
+      return;
+    }
+
+    // Do not want to remove the domNode, but the one past it.
+    startIndex += 1;
+
+    for (var i = startIndex; i < this.activeCardIndex; i++) {
+      this.removeCard(this._cardStack[i]);
+    }
   },
 
   getActiveCard: function() {
