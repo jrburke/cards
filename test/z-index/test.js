@@ -35,33 +35,33 @@ define(function(require) {
       this.timeout(8000);
 
       co(function* () {
-        yield cards.pushCard('immediate', 'first-card');
+        yield cards.add('immediate', 'first-card');
         //z-index
-        yield cards.pushCard('animate', 'second-card');
-        yield cards.pushCard('animate', 'third-card');
+        yield cards.add('animate', 'second-card');
+        yield cards.add('animate', 'third-card');
         //z-index
-        yield cards.pushCard('animate', 'second-card');
-        yield cards.pushCard('animate', 'first-card');
-        yield cards.pushCard('animate', 'third-card');
+        yield cards.add('animate', 'second-card');
+        yield cards.add('animate', 'first-card');
+        yield cards.add('animate', 'third-card');
         //z-index
-        yield cards.pushCard('animate', 'second-card');
-        yield cards.pushCard('animate', 'third-card');
-        yield cards.pushCard('animate', 'third-card');
-        yield cards.pushCard('animate', 'first-card');
-        yield cards.back('animate');
-        yield cards.back('animate');
-        yield cards.back('animate');
-        yield cards.back('animate');
-        //z-index
-        yield cards.pushCard('animate', 'second-card');
-        yield cards.pushCard('animate', 'third-card');
-        yield cards.pushCard('animate', 'first-card');
+        yield cards.add('animate', 'second-card');
+        yield cards.add('animate', 'third-card');
+        yield cards.add('animate', 'third-card');
+        yield cards.add('animate', 'first-card');
         yield cards.back('animate');
         yield cards.back('animate');
         yield cards.back('animate');
         yield cards.back('animate');
         //z-index
-        yield cards.pushCard('animate', 'second-card');
+        yield cards.add('animate', 'second-card');
+        yield cards.add('animate', 'third-card');
+        yield cards.add('animate', 'first-card');
+        yield cards.back('animate');
+        yield cards.back('animate');
+        yield cards.back('animate');
+        yield cards.back('animate');
+        //z-index
+        yield cards.add('animate', 'second-card');
         yield cards.back('animate');
         yield cards.back('animate');
         yield cards.back('animate');

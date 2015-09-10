@@ -52,7 +52,7 @@ card navigation vs the standard horizontal one. See the 'anim-vertical' and
 'upflow.anim-vertical' CSS classes. If the card places these classes on its root
 then vertical animations occur.
 
-Ideally the pushCard/back APIs will morph to specifying that information in the
+Ideally the add/back APIs will morph to specifying that information in the
 JS call, to allow more flexibility and card navigation style localization to
 the callers of those methods.
 
@@ -60,9 +60,10 @@ the callers of those methods.
 
 The main APIs that will be used:
 
-* `cards.pushCard('card_type', 'animate')`: pushes a new card in the card stack.
+* `cards.init()`: binds to the HTML mentioned above and sets up the cards stack
+for adds and removes.
+* `cards.add('card_type', 'animate')`: adds a new card in the card stack.
 Animates its appearance, based on the CSS values for the transition.
-
 * `cards.back('animate')`: Removes the visible card.
 
 ## cards_init API.
@@ -84,7 +85,7 @@ The custom element can provide the following functions that interact with the
 cards infrastructure:
 
 * **onArgs**: called right after custom element creation, to pass an args object
-that can be passed via the `cards.pushCard` API. The args are added to the
+that can be passed via the `cards.add` API. The args are added to the
 element as an `args` property on the element before onArgs is called. So if the
 args values are needed later they can be accessed there without implementing an
 onArgs method.

@@ -26,7 +26,7 @@ define('cards_init', function(require) {
     };
 
     cards.insertDefaultCard = function() {
-      return cards.insertCard('first-card', {}, 'previous');
+      return cards.insert('first-card', {}, 'previous');
     };
 
   };
@@ -45,7 +45,7 @@ define(function(require) {
   describe('default card', function() {
     it('add second-card, go back to first-card', function(done) {
       co(function* () {
-        yield cards.pushCard('immediate', 'second-card');
+        yield cards.add('immediate', 'second-card');
         yield cards.back('animate');
 
         assert.equal(true, qs('first-card').classList.contains('center'));

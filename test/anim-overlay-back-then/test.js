@@ -42,11 +42,11 @@ define(function(require) {
   describe('anim-overlay-back-then', function() {
     it('anim-overlay, add card, back, trigger then()', function(done) {
       co(function* () {
-        yield cards.pushCard('immediate', 'first-card');
-        yield cards.pushCard('animate', 'second-card');
-        yield cards.pushCard('animate', 'third-card');
+        yield cards.add('immediate', 'first-card');
+        yield cards.add('animate', 'second-card');
+        yield cards.add('animate', 'third-card');
 
-        cards.removeCard(qs('second-card'));
+        cards.remove(qs('second-card'));
 
         yield cards.back('then');
 

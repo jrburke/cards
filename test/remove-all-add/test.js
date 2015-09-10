@@ -29,26 +29,26 @@ define(function(require) {
 
   cards.init();
 
-  describe('removeAllCards', function() {
+  describe('removeAll', function() {
     it('Add three cards, remove all, add two', function(done) {
       co(function* () {
-        yield cards.pushCard('immediate', 'first-card');
-        yield cards.pushCard('animate', 'second-card');
-        yield cards.pushCard('animate', 'third-card');
+        yield cards.add('immediate', 'first-card');
+        yield cards.add('animate', 'second-card');
+        yield cards.add('animate', 'third-card');
 
         var secondCard = qs('second-card');
         assert.equal(true, qs('first-card').classList.contains('before'));
         assert.equal(true, secondCard.classList.contains('before'));
         assert.equal(true, qs('third-card').classList.contains('center'));
 
-        cards.removeAllCards();
+        cards.removeAll();
 
         assert.equal(-1, cards.activeCardIndex);
         assert.equal(true, !qs('.card'));
 
-        yield cards.pushCard('immediate', 'first-card');
-        yield cards.pushCard('animate', 'second-card');
-        yield cards.pushCard('animate', 'third-card');
+        yield cards.add('immediate', 'first-card');
+        yield cards.add('animate', 'second-card');
+        yield cards.add('animate', 'third-card');
 
         assert.equal(true, qs('first-card').classList.contains('before'));
         assert.equal(true, qs('second-card').classList.contains('before'));

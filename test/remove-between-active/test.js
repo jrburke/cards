@@ -32,13 +32,13 @@ define(function(require) {
   describe('remove middle card', function() {
     it('Add three cards, remove second one', function(done) {
       co(function* () {
-        var firstCard = yield cards.pushCard('immediate', 'first-card');
-        yield cards.pushCard('animate', 'second-card');
-        yield cards.pushCard('animate', 'first-card');
-        yield cards.pushCard('animate', 'second-card');
-        yield cards.pushCard('animate', 'third-card');
+        var firstCard = yield cards.add('immediate', 'first-card');
+        yield cards.add('animate', 'second-card');
+        yield cards.add('animate', 'first-card');
+        yield cards.add('animate', 'second-card');
+        yield cards.add('animate', 'third-card');
 
-        cards.removeCardsBetweenActive(firstCard);
+        cards.removeBetweenActive(firstCard);
 
         assert.equal(2, cards._cardStack.length);
         assert.equal(true, !!qs('first-card'));

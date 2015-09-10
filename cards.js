@@ -41,14 +41,14 @@ var cards = {
   activeCardIndex: -1,
 
   /**
-   * Holds card definitions loaded by pushCard/insertCard calls. If there is
+   * Holds card definitions loaded by add/insert calls. If there is
    * no existing definition, the card module is dynamically loaded then placed
    * in _cardDefs.
    */
   _cardDefs: {},
 
   /*
-   * Existing cards stored here. New cards getting pushed onto the bottom of the
+   * Existing cards stored here. New cards getting added onto the bottom of the
    * stack.
    */
   _cardStack: [],
@@ -62,7 +62,7 @@ var cards = {
   /**
    * Cards can stack on top of each other, make sure the stacked set is
    * visible over the lower sets. It is possible for this to not return to a
-   * zero value if anim-overlay cards are removeCard()'d directly and not
+   * zero value if anim-overlay cards are remove()'d directly and not
    * through usage of back(). The long term solution is to allow instances of
    * card stacks inside cards, but that is a bigger overhaul. This will get
    * reset to zero though if all cards are removed and the stack starts over.
@@ -79,7 +79,7 @@ var cards = {
 
   /**
    * Are we eating all click events we see until we transition to the next
-   * card (possibly due to a call to pushCard that has not yet occurred?).
+   * card (possibly due to a call to add() that has not yet occurred?).
    * Set by calling `eatEventsUntilNextCard`.
    */
   _eatingEventsUntilNextCard: false,
@@ -118,7 +118,7 @@ var cards = {
   },
 
   /**
-   * Converts the card type, passed to methods like pushCard and insertCard,
+   * Converts the card type, passed to methods like add and insert,
    * into a module ID that can be dynamically loaded. This is useful to allow
    * shorter, app-specific names that resolve to more complete names for module
    * loading, which may include loader plugin use.
@@ -143,17 +143,17 @@ var cards = {
   },
 
   /**
-   * Push a card onto the card-stack.
+   * Add a card onto the card-stack.
    * @param  {String} showMethod 'animate' or 'immediate'.
-   * @param  {String} type Passed to insertCard, see notes there.
-   * @param  {Object} [args] Passed to insertCard, see notes there.
-   * @param  {String} [placement] Passed to insertCard, see notes there.
+   * @param  {String} type Passed to insert, see notes there.
+   * @param  {Object} [args] Passed to insert, see notes there.
+   * @param  {String} [placement] Passed to insert, see notes there.
    * @return {Promise} Resolves to the card instance once it has been placed
    * in the DOM and is now the visible card, animation to the card has been
    * completed.
    */
-  pushCard: function(showMethod, type, args, placement) {
-    return this.insertCard(type, args, placement).then((element) => {
+  add: function(showMethod, type, args, placement) {
+    return this.insert(type, args, placement).then((element) => {
       var promise = new Promise((resolve) => {
         // Do not care about rejections here for simplicity. Could revisit
         // if there are errors that should be bubbled out later.
@@ -199,7 +199,7 @@ var cards = {
    * in the DOM. The card may not be visible at that point, just in the DOM of
    * the document.
    */
-  insertCard: function(type, args, placement) {
+  insert: function(type, args, placement) {
     var resolve,
         cardDef = this._cardDefs[type],
         promise = new Promise(function(r) {
@@ -222,7 +222,7 @@ var cards = {
 
       require([this.typeToModuleId(type)], (Ctor) => {
         this._cardDefs[type] = Ctor;
-        this.insertCard.apply(this, cbArgs).then((element) => {
+        this.insert.apply(this, cbArgs).then((element) => {
           this.stopEatingEvents();
           resolve(element);
         });
@@ -287,39 +287,6 @@ var cards = {
     return promise;
   },
 
-  getIndexForCard: function(element) {
-    for (var i = this._cardStack.length - 1; i >= 0; i--) {
-      var stackNode = this._cardStack[i];
-      if (element === stackNode) {
-        return i;
-      }
-    }
-    return -1;
-  },
-
-  isVisible: function(element) {
-    return !!(element &&
-              element.classList.contains('center'));
-  },
-
-  /**
-   * @return {String}
-   */
-  getActiveCardType: function() {
-    var result = null,
-        card = this.getActiveCard();
-
-    // Favor any _pendingInsert value as it is about to
-    // become current, just waiting on an async cycle
-    // to finish. Otherwise use current card value.
-    if (this._pendingInsert) {
-      result = this._pendingInsert;
-    } else if (card) {
-      result = cards.elementToType(card);
-    }
-    return result;
-  },
-
   /**
    * Goes "back" from the current active card one card step.
    * @param  {String} showMethod 'animate' or 'immediate'.
@@ -362,7 +329,7 @@ var cards = {
     this._setScreenReaderVisibility();
 
     return promise.then((element) => {
-      this.removeCard(startElement);
+      this.remove(startElement);
       return element;
     });
   },
@@ -371,7 +338,7 @@ var cards = {
    * Just removes a card from the stack, no special animations. Use back() if
    * wanting to remove with animation.
    */
-  removeCard: function(element) {
+  remove: function(element) {
     var index = this.getIndexForCard(element);
     if (index === -1) {
       throw new Error('DOM node not found: ' + element.nodeName.toLowerCase());
@@ -403,9 +370,9 @@ var cards = {
   /**
    * Shortcut for removing all the cards
    */
-  removeAllCards: function() {
+  removeAll: function() {
     for (var i = this._cardStack.length - 1; i > -1; i--) {
-      this.removeCard(this._cardStack[i]);
+      this.remove(this._cardStack[i]);
     }
   },
 
@@ -415,7 +382,7 @@ var cards = {
    * supplied card element.
    * @param  {Element} element
    */
-  removeCardsBetweenActive: function(element) {
+  removeBetweenActive: function(element) {
     var startIndex = this.getIndexForCard(element);
     if (startIndex === -1) {
       return;
@@ -424,16 +391,49 @@ var cards = {
     // Do not want to remove the element, but the one past it.
     startIndex += 1;
 
-    // removeCard adjusts activeCardIndex, and want to stop when the
+    // remove() adjusts activeCardIndex, and want to stop when the
     // activeCardIndex gets to the startIndex, which is one greater than
     // the target element.
     while (this.activeCardIndex > startIndex) {
-      this.removeCard(this._cardStack[startIndex]);
+      this.remove(this._cardStack[startIndex]);
     }
   },
 
   getActiveCard: function() {
     return this._cardStack[this.activeCardIndex];
+  },
+
+  getIndexForCard: function(element) {
+    for (var i = this._cardStack.length - 1; i >= 0; i--) {
+      var stackNode = this._cardStack[i];
+      if (element === stackNode) {
+        return i;
+      }
+    }
+    return -1;
+  },
+
+  isVisible: function(element) {
+    return !!(element &&
+              element.classList.contains('center'));
+  },
+
+  /**
+   * @return {String}
+   */
+  getActiveCardType: function() {
+    var result = null,
+        card = this.getActiveCard();
+
+    // Favor any _pendingInsert value as it is about to
+    // become current, just waiting on an async cycle
+    // to finish. Otherwise use current card value.
+    if (this._pendingInsert) {
+      result = this._pendingInsert;
+    } else if (card) {
+      result = cards.elementToType(card);
+    }
+    return result;
   },
 
   _showCard: function(cardIndex, showMethod, navDirection) {
@@ -633,7 +633,7 @@ var cards = {
     }
     this.emit('cardVisible', element);
 
-    // Finish out the resolution of the pushCard promise and clean up. resolve
+    // Finish out the resolution of the add() promise and clean up. resolve
     // might not exist, in the case of a remove, the previous card is shown.
     var resolve = this._cardVisibleResolves.get(element);
     if (resolve) {
@@ -647,7 +647,7 @@ var cards = {
    * we get to the next card.  The idea is to avoid bugs caused by the user
    * still being able to click things while our cards are transitioning or
    * while we are performing a (reliable) async wait before we actually initiate
-   * a pushCard in response to user stimulus.
+   * an add() in response to user stimulus.
    *
    * This is automatically triggered when performing an animated transition;
    * other code should only call this in the async wait case mentioned above.
