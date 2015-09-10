@@ -1,5 +1,5 @@
 /*
- * cards, an view navigation lib. Version 0.1.0.
+ * cards, an view navigation lib. Version 2.0.0.
  * Copyright 2013-2015, Mozilla Foundation
  */
 
