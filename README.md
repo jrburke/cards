@@ -85,8 +85,6 @@ cards infrastructure:
 
 ## todo
 
-* removeAllCards, check that activeIndex set correctly, can add more cards.
-* removeCard on active card.
 
 email cleanup:
 

@@ -11,15 +11,15 @@ var cardsInit = require('cards_init'),
     evt = require('evt'),
     transitionEnd = require('transition_end');
 
-function addClass(domNode, name) {
-  if (domNode) {
-    domNode.classList.add(name);
+function addClass(element, name) {
+  if (element) {
+    element.classList.add(name);
   }
 }
 
-function removeClass(domNode, name) {
-  if (domNode) {
-    domNode.classList.remove(name);
+function removeClass(element, name) {
+  if (element) {
+    element.classList.remove(name);
   }
 }
 
@@ -29,15 +29,29 @@ function removeClass(domNode, name) {
  * implementation created jrburke.
  */
 var cards = {
+  /**
+   * The ".cards" node that holds the cards.
+   */
+  cardsNode: null,
+
+  /**
+   * Tracks which index in the _cardStack is the active, visible card.
+   * @type {Number}
+   */
+  activeCardIndex: -1,
+
+  /**
+   * Holds card definitions loaded by pushCard/insertCard calls. If there is
+   * no existing definition, the card module is dynamically loaded then placed
+   * in _cardDefs.
+   */
   _cardDefs: {},
 
   /*
-   * Existing cards, in an LTR outlook, left-to-right, new cards getting pushed
-   * onto the right (or 'next' in generic bidi context).
+   * Existing cards stored here. New cards getting pushed onto the bottom of the
+   * stack.
    */
   _cardStack: [],
-
-  activeCardIndex: -1,
 
   /**
    * If a lazy load is causing us to have to wait before we insert a card, this
@@ -54,11 +68,6 @@ var cards = {
    * reset to zero though if all cards are removed and the stack starts over.
    */
   _zIndex: 0,
-
-  /**
-   * The ".cards" node that holds the cards.
-   */
-  cardsNode: null,
 
   /**
    * Tracks the number of transition events per card animation. Since each
@@ -108,84 +117,88 @@ var cards = {
     cardsInit(this);
   },
 
+  /**
+   * Converts the card type, passed to methods like pushCard and insertCard,
+   * into a module ID that can be dynamically loaded. This is useful to allow
+   * shorter, app-specific names that resolve to more complete names for module
+   * loading, which may include loader plugin use.
+   * @param  {String} type The card type
+   * @return {String} The module ID.
+   */
   typeToModuleId: function(type) {
     return type;
   },
 
+  /**
+   * Given a card element, return its card type. This allows the types to be
+   * shorter, app-specific names where the custom element may need more unique,
+   * longer names to not collide with other elements in the page. That custom
+   * element name may also be tied more directly with the module ID it was used
+   * to load it.
+   * @param  {Element} element The DOM element for the card.
+   * @return {String} The card type.
+   */
   elementToType: function(element) {
     return element.nodeName.toLowerCase();
   },
 
   /**
-   * If the tray is active and a click happens in the tray area, transition
-   * back to the visible thing (which must be to our right currently.)
-   */
-  _onMaybeIntercept: function(event) {
-    if (this._eatingEventsUntilNextCard) {
-      event.stopPropagation();
-      event.preventDefault();
-      return;
-    }
-
-    // Find the card containing the event target.
-    var cardNode = event.target;
-    for (cardNode = event.target; cardNode; cardNode = cardNode.parentElement) {
-      if (cardNode.classList.contains('card')) {
-        break;
-      }
-    }
-  },
-
-  /**
    * Push a card onto the card-stack.
-   */
-  /* @args[
-   *   @param[type]
-   *   @param[showMethod @oneof[
-   *     @case['animate']{
-   *       Perform an animated scrolling transition.
-   *     }
-   *     @case['immediate']{
-   *       Immediately warp to the card without animation.
-   *     }
-   *   ]]
-   *   @param[args Object]{
-   *     An arguments object to provide to the card's constructor when
-   *     instantiating.
-   *   }
-   *   @param[placement #:optional @oneof[
-   *     @case[undefined]{
-   *       The card gets pushed onto the end of the stack.
-   *     }
-   *     @case['previousAsFuture']{
-   *       The card gets inserted to the "left" of the activeCard, but
-   *       is considered a future card, not a historical card for th
-   *     }
-   *     @case['next']{
-   *       The card gets inserted to the right of the current card, and treaded
-   *       as the next, future card relative to the activeCard.
-   *     }
-   *     @case['previous']{
-   *       The card gets inserted to the left of the current card, and treated
-   *       as a historical card for the activeCard.
-   *     }
-   *   }
-   * ]
+   * @param  {String} showMethod 'animate' or 'immediate'.
+   * @param  {String} type Passed to insertCard, see notes there.
+   * @param  {Object} [args] Passed to insertCard, see notes there.
+   * @param  {String} [placement] Passed to insertCard, see notes there.
+   * @return {Promise} Resolves to the card instance once it has been placed
+   * in the DOM and is now the visible card, animation to the card has been
+   * completed.
    */
   pushCard: function(showMethod, type, args, placement) {
-    return this.insertCard(type, args, placement).then((domNode) => {
+    return this.insertCard(type, args, placement).then((element) => {
       var promise = new Promise((resolve) => {
         // Do not care about rejections here for simplicity. Could revisit
         // if there are errors that should be bubbled out later.
-        this._cardVisibleResolves.set(domNode, resolve);
+        this._cardVisibleResolves.set(element, resolve);
       });
 
-      this.showCard(this.getIndexForCard(domNode), showMethod, 'forward');
+      this._showCard(this.getIndexForCard(element), showMethod, 'forward');
 
       return promise;
     });
   },
 
+  /**
+   * Inserts a card into the stack.
+   *
+   * @param  {String} type The type of card to insert. cards.typeToModuleId() is
+   * used to translate that type into a module ID for loading.
+   *
+   * @param  {Object} [args] Optional args object to pass to the created card.
+   * The created card's .args property will be set to this object, and if the
+   * card has an onArgs method on it, it will be called with this object.
+   *
+   * @param  {String} [placement] where to place the card in the stack, and
+   * how it should be considered in the history of cards. Possible values:
+   *
+   * - (no value): This should be the heavily favored, and is the default,
+   * option. Card placed at end of stack, regardless of the position of the
+   * active card. Considered a card in the future, relative to active card.
+   *
+   * - 'previous': Added before active card, and considered a card in the past,
+   * relative to the active card.
+   *
+   * - 'next': Card placed after active card, which may not be at the end of the
+   * card stack. Considered a card in the future, relative to active card.
+   * Usually the (no value) choice for placement should be used over this
+   * choice.
+   *
+   * - 'previousAsFuture': Card placed before the active card, but considered a
+   * card in the future, relative to the active card. Useful for side/menu cards
+   * that peek out from the opposite side of the normal navigation direction.
+   *
+   * @return {Promise} Resolves to the card instance once it has been placed
+   * in the DOM. The card may not be visible at that point, just in the DOM of
+   * the document.
+   */
   insertCard: function(type, args, placement) {
     var resolve,
         cardDef = this._cardDefs[type],
@@ -209,9 +222,9 @@ var cards = {
 
       require([this.typeToModuleId(type)], (Ctor) => {
         this._cardDefs[type] = Ctor;
-        this.insertCard.apply(this, cbArgs).then((domNode) => {
+        this.insertCard.apply(this, cbArgs).then((element) => {
           this.stopEatingEvents();
-          resolve(domNode);
+          resolve(element);
         });
       });
       return promise;
@@ -219,26 +232,26 @@ var cards = {
 
     this._pendingInsert = null;
 
-    var domNode = args.cachedNode || new cardDef();
-    domNode.classList.add('card');
+    var element = args.cachedNode || new cardDef();
+    element.classList.add('card');
 
-    this.emit('cardCreated', type, domNode);
+    this.emit('cardCreated', type, element);
 
-    domNode.args = args || {};
+    element.args = args || {};
 
-    if (args && domNode.onArgs) {
-      domNode.onArgs(args);
+    if (args && element.onArgs) {
+      element.onArgs(args);
     }
 
     var cardIndex, insertBuddy;
     if (!placement) {
       cardIndex = this._cardStack.length;
       insertBuddy = null;
-      domNode.classList.add(cardIndex === 0 ? 'before' : 'after');
+      element.classList.add(cardIndex === 0 ? 'before' : 'after');
     } else if (placement === 'previousAsFuture') {
       cardIndex = this.activeCardIndex++;
       insertBuddy = this.cardsNode.children[cardIndex];
-      domNode.classList.add('before');
+      element.classList.add('before');
     } else if (placement === 'next') {
       cardIndex = this.activeCardIndex + 1;
       if (cardIndex >= this._cardStack.length) {
@@ -246,51 +259,53 @@ var cards = {
       } else {
         insertBuddy = this.cardsNode.children[cardIndex];
       }
-      domNode.classList.add('after');
+      element.classList.add('after');
     } else if (placement === 'previous') {
       cardIndex = Math.max(this.activeCardIndex - 1, 0);
       insertBuddy = this.cardsNode.children[this.activeCardIndex];
-      domNode.classList.add('before');
+      element.classList.add('before');
       this.activeCardIndex += 1;
     }
 
-    this._cardStack.splice(cardIndex, 0, domNode);
+    this._cardStack.splice(cardIndex, 0, element);
 
     if (!args.cachedNode) {
-      this.cardsNode.insertBefore(domNode, insertBuddy);
+      this.cardsNode.insertBefore(element, insertBuddy);
     }
 
-    if ('postInsert' in domNode) {
-      domNode.postInsert();
+    if ('postInsert' in element) {
+      element.postInsert();
     }
-    this.emit('postInsert', domNode);
+    this.emit('postInsert', element);
 
-    // make sure the reflow sees the new node so that the animation
-    // later is smooth.
+    // Make sure layout sees the new node so that the animation later is smooth.
     if (!args.cachedNode) {
-      domNode.clientWidth;
+      element.clientWidth;
     }
 
-    resolve(domNode);
+    resolve(element);
     return promise;
   },
 
-  getIndexForCard: function(domNode) {
+  getIndexForCard: function(element) {
     for (var i = this._cardStack.length - 1; i >= 0; i--) {
       var stackNode = this._cardStack[i];
-      if (domNode === stackNode) {
+      if (element === stackNode) {
         return i;
       }
     }
     return -1;
   },
 
-  isVisible: function(domNode) {
-    return !!(domNode &&
-              domNode.classList.contains('center'));
+  isVisible: function(element) {
+    return !!(element &&
+              element.classList.contains('center'));
   },
 
-  getCurrentCardType: function() {
+  /**
+   * @return {String}
+   */
+  getActiveCardType: function() {
     var result = null,
         card = this.getActiveCard();
 
@@ -305,17 +320,6 @@ var cards = {
     return result;
   },
 
-  /* @args[
-   *   @param[showMethod @oneof[
-   *     @case['animate']{
-   *       Perform an animated scrolling transition.
-   *     }
-   *     @case['immediate']{
-   *       Immediately warp to the card without animation.
-   *     }
-   *   ]]
-   * ]
-   */
   /**
    * Goes "back" from the current active card one card step.
    * @param  {String} showMethod 'animate' or 'immediate'.
@@ -327,7 +331,7 @@ var cards = {
       return;
     }
 
-    var cardDomNode = this.getActiveCard();
+    var startElement = this.getActiveCard();
 
     if (this._cardStack.length === 1) {
       // reset the z-index to 0 since we may have cards in the stack that
@@ -352,14 +356,14 @@ var cards = {
       this._cardVisibleResolves.set(this._cardStack[nextCardIndex], resolve);
     });
 
-    this.showCard(nextCardIndex, showMethod, 'back');
+    this._showCard(nextCardIndex, showMethod, 'back');
 
     // Reset aria-hidden attributes to handle cards visibility.
     this._setScreenReaderVisibility();
 
-    return promise.then((node) => {
-      this.removeCard(cardDomNode);
-      return node;
+    return promise.then((element) => {
+      this.removeCard(startElement);
+      return element;
     });
   },
 
@@ -367,21 +371,21 @@ var cards = {
    * Just removes a card from the stack, no special animations. Use back() if
    * wanting to remove with animation.
    */
-  removeCard: function(domNode) {
-    var index = this.getIndexForCard(domNode);
+  removeCard: function(element) {
+    var index = this.getIndexForCard(element);
     if (index === -1) {
-      throw new Error('DOM node not found: ' + domNode.nodeName.toLowerCase());
+      throw new Error('DOM node not found: ' + element.nodeName.toLowerCase());
     }
 
     // If the remove is for a DOM node that used anim-overlay, which would have
     // increased the _zIndex when added, adjust the zIndex appropriately.
-    if (domNode && domNode.classList.contains('anim-overlay')) {
+    if (element && element.classList.contains('anim-overlay')) {
       this._zIndex -= 10;
     }
 
     try {
-      if (domNode.release) {
-        domNode.release();
+      if (element.release) {
+        element.release();
       }
     }
     catch (ex) {
@@ -393,7 +397,7 @@ var cards = {
     }
 
     this._cardStack.splice(index, 1);
-    domNode.parentNode.removeChild(domNode);
+    element.parentNode.removeChild(element);
   },
 
   /**
@@ -406,23 +410,23 @@ var cards = {
   },
 
   /**
-   * Remove cards between the active card and the domNode that represents
+   * Remove cards between the active card and the element that represents
    * another card. This allows back() to work nicely between active card and the
-   * supplied card domNode.
-   * @param  {Element} domNode
+   * supplied card element.
+   * @param  {Element} element
    */
-  removeCardsBetweenActive: function(domNode) {
-    var startIndex = this.getIndexForCard(domNode);
+  removeCardsBetweenActive: function(element) {
+    var startIndex = this.getIndexForCard(element);
     if (startIndex === -1) {
       return;
     }
 
-    // Do not want to remove the domNode, but the one past it.
+    // Do not want to remove the element, but the one past it.
     startIndex += 1;
 
     // removeCard adjusts activeCardIndex, and want to stop when the
     // activeCardIndex gets to the startIndex, which is one greater than
-    // the target domNode.
+    // the target element.
     while (this.activeCardIndex > startIndex) {
       this.removeCard(this._cardStack[startIndex]);
     }
@@ -432,7 +436,7 @@ var cards = {
     return this._cardStack[this.activeCardIndex];
   },
 
-  showCard: function(cardIndex, showMethod, navDirection) {
+  _showCard: function(cardIndex, showMethod, navDirection) {
     // Do not do anything if this is a show card for the current card.
     if (cardIndex === this.activeCardIndex) {
       return;
@@ -453,7 +457,7 @@ var cards = {
       this.activeCardIndex = cardIndex === 0 ? cardIndex : cardIndex - 1;
     }
 
-    var domNode = (cardIndex !== null) ? this._cardStack[cardIndex] : null;
+    var element = (cardIndex !== null) ? this._cardStack[cardIndex] : null;
     var beginNode = this.getActiveCard();
     var endNode = this._cardStack[cardIndex];
     var isForward = navDirection === 'forward';
@@ -512,7 +516,7 @@ var cards = {
       addClass(beginNode, 'no-anim');
       addClass(endNode, 'no-anim');
 
-      // make sure the reflow sees the transition is turned off.
+      // Make sure layout sees the transition is turned off.
       cardsNode.clientWidth;
       // explicitly clear since there will be no animation
       this._eatingEventsUntilNextCard = false;
@@ -555,7 +559,7 @@ var cards = {
       removeClass(beginNode, 'no-anim');
       removeClass(endNode, 'no-anim');
 
-      this._onCardVisible(domNode);
+      this._onCardVisible(element);
     }
 
     this.activeCardIndex = cardIndex;
@@ -621,20 +625,20 @@ var cards = {
 
   /**
    * Handles final notification of card visibility in the stack.
-   * @param  {Card} domNode the card instance.
+   * @param  {Card} element The card instance.
    */
-  _onCardVisible: function(domNode) {
-    if (domNode.onCardVisible) {
-      domNode.onCardVisible();
+  _onCardVisible: function(element) {
+    if (element.onCardVisible) {
+      element.onCardVisible();
     }
-    this.emit('cardVisible', domNode);
+    this.emit('cardVisible', element);
 
     // Finish out the resolution of the pushCard promise and clean up. resolve
     // might not exist, in the case of a remove, the previous card is shown.
-    var resolve = this._cardVisibleResolves.get(domNode);
+    var resolve = this._cardVisibleResolves.get(element);
     if (resolve) {
-      this._cardVisibleResolves.delete(domNode);
-      resolve(domNode);
+      this._cardVisibleResolves.delete(element);
+      resolve(element);
     }
   },
 
@@ -666,14 +670,14 @@ var cards = {
   },
 
   /**
-   * If there are any cards on the deck right now, log an error and clear them
-   * all out.  Our caller is strongly asserting that there should be no cards
-   * and the presence of any indicates a bug.
+   * If the tray is active and a click happens in the tray area, transition
+   * back to the visible thing (which must be to our right currently.)
    */
-  assertNoCards: function() {
-    if (this._cardStack.length) {
-      throw new Error('There are ' + this._cardStack.length + ' cards but' +
-                      ' there should be ZERO');
+  _onMaybeIntercept: function(event) {
+    if (this._eatingEventsUntilNextCard) {
+      event.stopPropagation();
+      event.preventDefault();
+      return;
     }
   }
 };
