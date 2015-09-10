@@ -94,6 +94,11 @@ any animation if 'animate' is in play.
 * release: called after the card has been removed from the DOM. Allows the card
 to do cleanup before it is garbage collected.
 
+## Tests
+
+To run the tests, open `test/all.html` in a browser and press the "Go" button.
+Each test is also invidually loadable for debugging support.
+
 ## License
 
 [Apache License 2.0](http://www.apache.org/licenses/LICENSE-2.0)
