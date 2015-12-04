@@ -89,10 +89,10 @@ that can be passed via the `cards.add` API. The args are added to the
 element as an `args` property on the element before onArgs is called. So if the
 args values are needed later they can be accessed there without implementing an
 onArgs method.
-* postInsert: called after the card has been inserted in the DOM, but before
+* **postInsert**: called after the card has been inserted in the DOM, but before
 any animation if 'animate' is in play.
-* onCardVisible: called once the card becomes the visible card.
-* release: called after the card has been removed from the DOM. Allows the card
+* **onCardVisible**: called once the card becomes the visible card.
+* **release**: called after the card has been removed from the DOM. Allows the card
 to do cleanup before it is garbage collected.
 
 ## Tests
