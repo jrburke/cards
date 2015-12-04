@@ -21,8 +21,11 @@ is to dynamically load the cards as they are needed.
 
 ## Dependencies
 
-* evt
+* [evt](https://github.com/jrburke/evt)
 * transition_end
+
+These dependencies can be found in the lib/ folder if you just want one place
+to get everything.
 
 It also depends on a module called ```'cards_init'```. The app provides this
 module to help set up some app-specific parts for the cards module. See the
